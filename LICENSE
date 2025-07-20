@@ -1,0 +1,39 @@
+Anti-ROS License
+
+Copyright 2025 Martin Ahrnbom
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), 
+to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following two conditions:
+
+Condition 1:
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, 
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE 
+OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Condition 2:
+Any person or organization directly using the Software must, in some way, shape or form, publicly express negative emotions, such as hatred, 
+disapproval, disgust, loathing or frustration, towards the Robot Operating System ("ROS") project, for a sufficiently long amount of time that 
+some third party would be able to notice it. This condition is only valid for as long as the ROS project is in development, defined here as there
+being a ROS version release within the last three years. In such a time when the ROS project is no longer actively developed, this condition should
+be considered automatically fulfilled for any party.
+
+For clarity, the following examples are shown here to illustrate how one might fulfill, or not fulfill, this condition.
+
+Example 1: Person A wants to use the Software for her personal project. She uploads a 2 minute video on YouTube expressing frustration and 
+some pain points of using ROS. This fulfills the condition.
+
+Example 2: Person B is working for Company C. Person B decides to use the Software for their work project. Person B writes "ROS BAD" on a 
+piece of paper and tapes it up to the office window, facing the outside street. This paper is kept there for two days, giving people outside
+a chance to see it. This fulfills the condition.
+
+Example 3: Person D lives alone on a remote island. There is no other people nearby, and she has no regular access to the internet or
+other commonly used forms of communication. She wants to use the Software, so she places rocks on the beach in the shape of the letters
+"I DON'T LIKE ROS", which could possible be seen from an airplane. This fulfills the condition. 
+
+Example 4: Person E wants to use the Software. She puts a sign on her desk that reads "I HATE ROS". The desk it not clearly visible
+for third parties except for those who are inside her house, which is not considered public for the purposes of this license. Therefore,
+this does not fulfill the condition. 
