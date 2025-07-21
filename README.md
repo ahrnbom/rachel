@@ -10,3 +10,6 @@
 - [ ] first alpha release: basic functionality implemented, some things work, needs a lot more polish
 - [ ] first beta release: no obvious known bugs, suitable for testing
 - [ ] first general release
+
+## Documentation
+* [Design principles](https://github.com/ahrnbom/rachel/blob/main/docs/design.md)
