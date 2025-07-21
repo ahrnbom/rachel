@@ -8,7 +8,7 @@
 - [ ] some basic form of ROS integration
 - [ ] basic visualization support
 - [ ] first alpha release: basic functionality implemented, some things work, needs a lot more polish
-- [ ] first beta release: no obvious known bugs, suitable for testing
+- [ ] first beta release: no obvious known bugs, suitable for testing, main functionality documented sufficiently for common use 
 - [ ] first general release
 
 ## Documentation
