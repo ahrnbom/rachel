@@ -4,6 +4,6 @@ namespace rachel {
     bool shutdown = false;
     
     Time current_time() {
-        return std::chrono::system_clock::now();
+        return std::chrono::steady_clock::now();
     }
 }
