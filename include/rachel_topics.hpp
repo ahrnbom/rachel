@@ -15,7 +15,7 @@ template <typename T>
 class Topic {
 private:
     T data;
-    uint64_t seq = 0;
+    uint64_t seq = 1;
     std::mutex mutex;
 
 public:
@@ -44,26 +44,59 @@ public:
 };
 
 template <typename T>
-using Publisher = std::shared_ptr<Topic<T>>;
+using topic_ptr = std::shared_ptr<Topic<T>>;
 
 inline std::unordered_map<std::string, std::any> topics;
 inline std::mutex topics_mutex;
 
 template <typename T>
-Publisher<T> register_publisher(const std::string topic) {
+topic_ptr<T> register_publisher(const std::string topic, const T& initial) {
     const MutexLock lock(topics_mutex);
-    auto p = std::make_shared<Topic<T>>();
-    topics[topic] = p;
+
+    topic_ptr<T> p;
+
+    auto found = topics.find(topic);
+    if (found == topics.end()) {
+        p = std::make_shared<Topic<T>>(initial);
+        topics[topic] = p;
+    } else {
+        p = std::any_cast<topic_ptr<T>>(found->second);
+        p->publish(initial);
+    }
+
     return p;
 }
 
 template <typename T>
-Publisher<T> register_publisher(const std::string topic, const T& initial) {
+topic_ptr<T> register_publisher(const std::string topic) {
     const MutexLock lock(topics_mutex);
-    auto p = std::make_shared<Topic<T>>(initial);
-    topics[topic] = p;
-    return p;
+    T initial;
+    return register_publisher(topic, initial);
 }
+
+template <typename T>
+class Subscription {
+private:
+    T* t;
+    topic_ptr<T> p;
+    std::string topic_name;
+    uint64_t seq = 0;
+
+public:
+    Subscription(T* data, const std::string& topic): t(data), topic_name(topic) {
+        const MutexLock lock(topics_mutex);
+        auto found = topics.find(topic_name);
+        if (found != topics.end()) {
+            p = std::any_cast<topic_ptr<T>>(found->second);
+        } else {
+            p = register_publisher<T>(topic);
+        }
+    };
+
+    void update() {
+        p->update(*t, seq);
+    }
+};
 
 }
 }

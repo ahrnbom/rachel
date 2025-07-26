@@ -3,11 +3,14 @@
 
 class SomeNode : public rachel::Node {
 public:
-    rachel::topics::Publisher<int> num_pub;
+    rachel::Publisher<int> num_pub;
+    float f;
 
     void init() override {
         std::cout << "Initializing node..." << std::endl;
         num_pub = rachel::topics::register_publisher<int>("some_number");
+
+        subscribe<float>("other_number", &f);
     }
 
     void run() override {
