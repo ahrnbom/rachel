@@ -2,6 +2,12 @@
 #include <chrono>
 #include <thread>
 #include <mutex>
+#include <unordered_map>
+#include <any>
+
+using MutexLock = std::lock_guard<std::mutex>;
+
+#include "rachel_topics.hpp"
 
 namespace rachel {
 
@@ -23,7 +29,7 @@ constexpr TimeDelta minutes(double m) {
 constexpr TimeDelta hours(double h) { return seconds(h * 3600.0); }
 constexpr TimeDelta microseconds(double us) { return seconds(us / 1000000.0); }
 
-using MutexLock = std::lock_guard<std::mutex>;
+
 
 /*
     Obtains the current time, taking into account if the system is running live or from a recording.
@@ -31,28 +37,6 @@ using MutexLock = std::lock_guard<std::mutex>;
 Time current_time();
 
 extern bool shutdown;
-
-template <typename T>
-class Topic {
-private:
-    T data;
-    uint64_t seq = 0;
-    std::mutex mutex;
-
-public:
-    Topic(const T& t): data(t) {};
-    Topic() {};
-
-    /*
-        Updates the internal state of the topic to a new piece of data, which will propagate to subscribers
-    */
-    void publish(const T& t);
-
-    /*
-        A subscriber can call this to keep their data up to date with the latest published data
-    */
-    void update(T& t, uint64_t& s);
-};
 
 class Node {
 public: 

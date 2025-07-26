@@ -6,22 +6,6 @@ namespace rachel {
     Time current_time() {
         return std::chrono::steady_clock::now();
     }
-
-    template <typename T>
-    void Topic<T>::publish(const T& t) {
-        const MutexLock lock(mutex);
-        data = t;
-        ++seq;
-    }
-
-    template <typename T>
-    void Topic<T>::update(T& t, uint64_t& s) {
-        const MutexLock lock(mutex);
-        if (seq > s) {
-            s = seq;
-            t = data;
-        }
-    }
     
     void Node::main_loop() {
         init();
