@@ -25,10 +25,10 @@ Condition 2:
 Any person or organization directly using the Software must, in some way, 
 shape or form, publicly express negative emotions, such as hatred, disapproval,
 disgust, loathing or frustration, towards the Robot Operating System (“ROS”) 
-project, for a sufficiently long amount of time that some third party would be 
-able to notice it. This condition is only valid for as long as the ROS project 
+software for a sufficiently long amount of time that some third party would be 
+able to notice it. This condition is only valid for as long as the ROS software 
 is in development, defined here as there being a ROS version released within 
-the last three years. In such a time when the ROS project is no longer actively
+the last three years. In such a time when the ROS software is no longer actively
 developed, this condition should be considered automatically fulfilled for any 
 party.
 
@@ -55,3 +55,7 @@ Example 4: Person E wants to use the Software. She puts a sign on her desk
 that reads “I HATE ROS”. The desk it not clearly visible for third parties,
 except for those who are inside her house, which is not considered public for 
 the purposes of this license. Therefore, this does not fulfill the condition. 
+
+Example 5: Person F wants to use the Software. She writes a blog post about
+how the developers working on ROS are stupid. This does not fulfill the condition,
+as the condition is specifically about the ROS software, not the people making it.
