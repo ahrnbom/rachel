@@ -1,15 +1,19 @@
 #include "rachel.hpp"
 
-namespace rachel {
+namespace rachel
+{
     bool shutdown = false;
-    
-    Time current_time() {
+
+    Time current_time()
+    {
         return std::chrono::steady_clock::now();
     }
-    
-    void Node::main_loop() {
+
+    void Node::main_loop()
+    {
         init();
-        while (!shutdown) {
+        while (!shutdown)
+        {
             const auto start_time = current_time();
             handle_callbacks();
             run();
@@ -17,7 +21,8 @@ namespace rachel {
             const auto end_time = current_time();
             const auto elapsed = start_time - end_time;
 
-            if (elapsed < time_delta) {
+            if (elapsed < time_delta)
+            {
                 std::this_thread::sleep_for(time_delta - elapsed);
             }
         }

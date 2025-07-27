@@ -11,11 +11,21 @@ add_library(rachel INTERFACE)
 target_include_directories(rachel INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/nodes/include>
+    $<INSTALL_INTERFACE:nodes/include>
 )
 
+# Custom nodes go here
+
+add_library(some_node nodes/src/some_node.cpp)
+target_link_libraries(some_node rachel)
+
+# End of custom nodes 
+
 add_library(rachel_impl src/rachel.cpp)
-target_link_libraries(rachel_impl PUBLIC rachel)
+target_link_libraries(rachel_impl rachel)
 
 add_executable(rachel_example src/main.cpp)
-target_link_libraries(rachel_example rachel_impl)
 
+# Make sure to include all custom nodes here
+target_link_libraries(rachel_example PUBLIC rachel rachel_impl some_node) 
