@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <any>
 #include <functional>
+#include <iostream>
 
 using MutexLock = std::lock_guard<std::mutex>;
 
@@ -51,7 +52,7 @@ public:
     template <typename T>
     void subscribe(const std::string& topic, T* data) {
         subscriptions[topic] = topics::Subscription<T>(data, topic);
-        subscription_updates[topic] = [&]() {
+        subscription_updates[topic] = [this, topic]() {
             auto sub = std::any_cast<topics::Subscription<T>>(subscriptions[topic]);
             sub.update();
         };
