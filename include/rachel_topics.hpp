@@ -41,6 +41,15 @@ public:
             t = data;
         }
     }
+
+    /*
+        Overrides the sequence number. Calling this from a custom node will probably break the subscription.
+        This is used for initialization, to determine if the initial value should be provided to subscribers
+        or not.  
+    */
+    void _override_seq(const uint64_t& new_seq) {
+        seq = new_seq;
+    }
 };
 
 template <typename T>
@@ -49,15 +58,18 @@ using topic_ptr = std::shared_ptr<Topic<T>>;
 inline std::unordered_map<std::string, std::any> topics;
 inline std::mutex topics_mutex;
 
+/*
+    This function registers a publisher without obtaining the topics lock, 
+    so it should only be called in contexts where the lock has already been obtained
+*/
 template <typename T>
-topic_ptr<T> register_publisher(const std::string topic, const T& initial) {
-    const MutexLock lock(topics_mutex);
-
+topic_ptr<T> _register_publisher_raw(const std::string topic, const T& initial, const uint64_t& seq) {
     topic_ptr<T> p;
 
     auto found = topics.find(topic);
     if (found == topics.end()) {
         p = std::make_shared<Topic<T>>(initial);
+        p->_override_seq(seq);
         topics[topic] = p;
     } else {
         p = std::any_cast<topic_ptr<T>>(found->second);
@@ -67,12 +79,29 @@ topic_ptr<T> register_publisher(const std::string topic, const T& initial) {
     return p;
 }
 
+/*
+    Registers a publisher for a new topic, with some initial value provided.
+    This value will be provided to any subscriber until some other value is published
+    on this topic.
+*/
+template <typename T>
+topic_ptr<T> register_publisher(const std::string topic, const T& initial) {
+    const MutexLock lock(topics_mutex);
+    return _register_publisher_raw(topic, initial, 1);
+}
+
+/*
+    Register a publisher for a new topic. Subscribers will not get any data until 
+    something has been published on this topic.
+*/
 template <typename T>
 topic_ptr<T> register_publisher(const std::string topic) {
-    const MutexLock lock(topics_mutex);
     T initial;
-    return register_publisher(topic, initial);
+    const MutexLock lock(topics_mutex);
+    return _register_publisher_raw(topic, initial, 0);
 }
+
+
 
 template <typename T>
 class Subscription {
@@ -89,7 +118,8 @@ public:
         if (found != topics.end()) {
             p = std::any_cast<topic_ptr<T>>(found->second);
         } else {
-            p = register_publisher<T>(topic);
+            T initial;
+            p = _register_publisher_raw<T>(topic, initial, 0);
         }
     };
 
