@@ -1,8 +1,9 @@
 #include "rachel.hpp"
+#include <signal.h>
 
 namespace rachel
 {
-    bool shutdown = false;
+    std::atomic<bool> shutdown{false};
 
     Time current_time()
     {
@@ -36,5 +37,13 @@ namespace rachel
             std::this_thread::sleep_for(remaining);
         }
         return true;
+    }
+
+    void capture_interrupt_signal() {
+        struct sigaction sa;
+        sa.sa_handler = [](int s) {shutdown = true;};
+        sigemptyset(&sa.sa_mask);
+        sa.sa_flags = 0;
+        sigaction(SIGINT, &sa, NULL);
     }
 }

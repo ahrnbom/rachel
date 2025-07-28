@@ -6,6 +6,7 @@
 #include <any>
 #include <functional>
 #include <iostream>
+#include <atomic>
 #include <cmath>
 
 using MutexLock = std::lock_guard<std::mutex>;
@@ -33,7 +34,14 @@ namespace rachel
     */
     Time current_time();
 
-    extern bool shutdown;
+    /*
+        Set to true when it is time to shut down the program. All nodes are expected to quickly turn themselves off,
+        which can be achieved by regularly using main_loop_condition. 
+        It is marked as `extern` so that all nodes share the same object, and it is atomic for thread safety.
+    */
+    extern std::atomic<bool> shutdown;
+
+    void capture_interrupt_signal();
 
     class Node
     {
