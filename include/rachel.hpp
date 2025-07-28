@@ -15,7 +15,6 @@ using MutexLock = std::lock_guard<std::mutex>;
 
 namespace rachel
 {
-
     using Time = std::chrono::time_point<std::chrono::steady_clock>;
     using TimeDelta = Time::duration;
 
@@ -36,8 +35,9 @@ namespace rachel
 
     /*
         Set to true when it is time to shut down the program. All nodes are expected to quickly turn themselves off,
-        which can be achieved by regularly using main_loop_condition. 
+        which can be achieved by regularly using main_loop_condition.
         It is marked as `extern` so that all nodes share the same object, and it is atomic for thread safety.
+        The actual value is defined in rachel.cpp
     */
     extern std::atomic<bool> shutdown;
 
@@ -52,9 +52,7 @@ namespace rachel
         TimeDelta _time_delta = seconds(0.1);
 
     public:
-        Node() {
-            _last_loop_condition = current_time();
-        }
+        Node();
 
         template <typename T>
         void subscribe(const std::string &topic, T *data)
@@ -67,11 +65,19 @@ namespace rachel
             };
         };
 
-        void set_time_delta(const TimeDelta& dt);
+        void set_time_delta(const TimeDelta &dt);
         virtual void handle_callbacks();
         virtual void run() {};
         virtual bool main_loop_condition();
     };
 
+    /*
+        Launches a node in its own thread
+    */
+    void launch(Node& node);
 
+    /*
+        Waits for all nodes to finish. Typically called near the end of the main function.
+    */
+    void wait_for_nodes();
 }
