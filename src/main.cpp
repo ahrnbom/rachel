@@ -2,6 +2,6 @@
 
 int main() {
     SomeNode node;
-    node.main_loop();
+    node.run();
     return 0;
 }
