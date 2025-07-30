@@ -10,8 +10,7 @@ namespace rachel
         return std::chrono::steady_clock::now();
     }
 
-    Node::Node()
-    {
+    Node::Node(const std::string& name): node_name(name) {
         _last_loop_condition = current_time();
     }
 
@@ -37,14 +36,17 @@ namespace rachel
 
         handle_callbacks();
 
-        const auto now = current_time();
-        const auto elapsed = now - _last_loop_condition;
+        const auto elapsed = current_time() - _last_loop_condition;
         const auto remaining = _time_delta - elapsed;
-        _last_loop_condition = now;
+        
         if (remaining > TimeDelta::zero())
         {
             std::this_thread::sleep_for(remaining);
+            spdlog::debug("{} took {:.4f} s out of {:.4f} s budget", node_name, to_seconds(elapsed), to_seconds(_time_delta));
+        } else {
+            spdlog::warn("{} took {:.4f} s out of {:.4f} s budget", node_name, to_seconds(elapsed), to_seconds(_time_delta));
         }
+        _last_loop_condition = current_time();
         return true;
     }
 

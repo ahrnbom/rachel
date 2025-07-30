@@ -1,9 +1,15 @@
 #include "other_node.hpp"
 
-int x = 0;
+OtherNode other_node("other_node");
+
+void number_callback(const int& i) {
+    other_node.do_something(i);
+}
 
 void OtherNode::run()
 {
+    set_time_delta(rachel::seconds(0.05));
+
     auto pub = rachel::topics::register_publisher<float>("other_number");
 
     subscribe<int>("some_number", [&](const int& i) {

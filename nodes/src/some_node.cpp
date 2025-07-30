@@ -1,5 +1,6 @@
 #include "some_node.hpp"
 
+SomeNode some_node("some_node");
 
 void SomeNode::run()
 {
@@ -11,6 +12,7 @@ void SomeNode::run()
 
     int x = 0;
     while (main_loop_condition()) {
+
         spdlog::info("some node has f = {}", f);
 
         ++x;

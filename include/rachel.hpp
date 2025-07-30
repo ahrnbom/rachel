@@ -29,6 +29,10 @@ namespace rachel
     constexpr TimeDelta milliseconds(double ms) { return seconds(ms / 1000.0); }
     constexpr TimeDelta minutes(double m) { return seconds(m * 60.0); }
     constexpr TimeDelta hours(double h) { return seconds(h * 3600.0); }
+    constexpr double to_seconds(const TimeDelta &dt)
+    {
+        return std::chrono::duration_cast<std::chrono::duration<double>>(dt).count();
+    }
 
     /*
         Obtains the current time, taking into account if the system is running live or from a recording.
@@ -52,13 +56,16 @@ namespace rachel
         std::unordered_map<std::string, std::any> _subscriptions;
         Time _last_loop_condition;
         TimeDelta _time_delta = seconds(0.1);
+        
 
     public:
-        Node();
+        std::string node_name;
+
+        Node(const std::string& name);
 
         /*
-            Subscribe by value, which means that the data pointer will be regularly written with 
-            the latest published value. 
+            Subscribe by value, which means that the data pointer will be regularly written with
+            the latest published value.
         */
         template <typename T>
         void subscribe(const std::string &topic, T *data)
@@ -66,20 +73,22 @@ namespace rachel
             _subscriptions[topic] = topics::ValueSubscription<T>(data, topic);
             _subscription_updates[topic] = [this, topic]()
             {
-                auto& sub = std::any_cast<topics::ValueSubscription<T>&>(_subscriptions[topic]);
+                auto &sub = std::any_cast<topics::ValueSubscription<T> &>(_subscriptions[topic]);
                 sub.update();
             };
         };
 
         /*
             Queue based subscription, which means that the callback will be regularly called
-            when new values are published. 
+            when new values are published.
         */
         template <typename T>
-        void subscribe(const std::string& topic, std::function<void(const T&)> callback) {
+        void subscribe(const std::string &topic, std::function<void(const T &)> callback)
+        {
             _subscriptions[topic] = topics::QueueSubscription<T>(topic);
-            _subscription_updates[topic] = [this, topic, callback]() {
-                auto& sub = std::any_cast<topics::QueueSubscription<T>&>(_subscriptions[topic]);
+            _subscription_updates[topic] = [this, topic, callback]()
+            {
+                auto &sub = std::any_cast<topics::QueueSubscription<T> &>(_subscriptions[topic]);
                 sub.update(callback);
             };
         }
@@ -93,7 +102,7 @@ namespace rachel
     /*
         Launches a node in its own thread
     */
-    void launch(Node& node);
+    void launch(Node &node);
 
     /*
         Waits for all nodes to finish. Typically called near the end of the main function.
