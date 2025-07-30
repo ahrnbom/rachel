@@ -68,13 +68,14 @@ namespace rachel
             the latest published value.
         */
         template <typename T>
-        void subscribe(const std::string &topic, T *data)
+        void subscribe(const std::string &topic, T *data, bool* is_set)
         {
             _subscriptions[topic] = topics::ValueSubscription<T>(data, topic);
-            _subscription_updates[topic] = [this, topic]()
+            _subscription_updates[topic] = [this, topic, is_set]()
             {
                 auto &sub = std::any_cast<topics::ValueSubscription<T> &>(_subscriptions[topic]);
                 sub.update();
+                *is_set = sub.is_set();
             };
         };
 
