@@ -54,16 +54,33 @@ namespace rachel
     public:
         Node();
 
+        /*
+            Subscribe by value, which means that the data pointer will be regularly written with 
+            the latest published value. 
+        */
         template <typename T>
         void subscribe(const std::string &topic, T *data)
         {
             _subscriptions[topic] = topics::ValueSubscription<T>(data, topic);
             _subscription_updates[topic] = [this, topic]()
             {
-                auto sub = std::any_cast<topics::ValueSubscription<T>>(_subscriptions[topic]);
+                auto& sub = std::any_cast<topics::ValueSubscription<T>&>(_subscriptions[topic]);
                 sub.update();
             };
         };
+
+        /*
+            Queue based subscription, which means that the callback will be regularly called
+            when new values are published. 
+        */
+        template <typename T>
+        void subscribe(const std::string& topic, std::function<void(const T&)> callback) {
+            _subscriptions[topic] = topics::QueueSubscription<T>(topic);
+            _subscription_updates[topic] = [this, topic, callback]() {
+                auto& sub = std::any_cast<topics::QueueSubscription<T>&>(_subscriptions[topic]);
+                sub.update(callback);
+            };
+        }
 
         void set_time_delta(const TimeDelta &dt);
         virtual void handle_callbacks();

@@ -5,23 +5,25 @@
 #include <string>
 #include <memory>
 #include <deque>
+#include <sstream>
 
 namespace rachel
 {
     namespace topics
     {
+        using seq_t = uint64_t;
 
         template <typename T>
         class Topic
         {
         private:
-            std::deque<std::pair<uint64_t, T>> queue;
+            std::deque<std::pair<seq_t, T>> queue;
             size_t queue_size = 4;
-            uint64_t seq;
+            seq_t seq;
             std::mutex mutex;
 
         public:
-            Topic(const T &t, const uint64_t& first_seq) : seq(first_seq) {
+            Topic(const T &t, const seq_t& first_seq) : seq(first_seq) {
                 publish(t);
             };
             Topic() {
@@ -45,14 +47,14 @@ namespace rachel
             /*
                 A subscriber can call this to keep their data up to date with the latest published data
             */
-            void update(T &t, uint64_t &seq_num, bool& is_set)
+            void update(T &t, seq_t &seq_num, bool& is_set)
             {
                 const MutexLock lock(mutex);
                 if (queue.size() == 0) {
                     return;
                 }
 
-                const std::pair<uint64_t, T>& pair = queue.back();
+                const std::pair<seq_t, T>& pair = queue.back();
                 if (pair.first > seq_num) {
                     seq_num = pair.first;
                     t = pair.second;
@@ -64,7 +66,7 @@ namespace rachel
                 A subscriber can call this to perform a callback function on each value with a newer
                 sequence number than what they had stored. This also updates said sequence number. 
             */
-            void perform_callbacks(uint64_t& s, std::function<void(const T&)>& cb) {
+            void perform_callbacks(seq_t& s, std::function<void(const T&)>& cb) {
                 const MutexLock lock(mutex);
 
                 /*
@@ -72,7 +74,7 @@ namespace rachel
                     This loop can be avoided in several cases, in particular when we're entirely up to date
                     It's a little bit tricky to write something completely loop free that also isn't very brittle
                 */
-                for (const std::pair<uint64_t, T>& pair : queue) {
+                for (const std::pair<seq_t, T>& pair : queue) {
                     if (pair.first > s) {
                         cb(pair.second);
                         s = pair.first;
@@ -101,7 +103,7 @@ namespace rachel
             so it should only be called in contexts where the lock has already been obtained
         */
         template <typename T>
-        topic_ptr<T> _register_publisher_raw(const std::string topic, const T &initial, const uint64_t &seq)
+        topic_ptr<T> _register_publisher_raw(const std::string topic, const T &initial, const seq_t &seq)
         {
             topic_ptr<T> p;
 
@@ -144,6 +146,21 @@ namespace rachel
             return _register_publisher_raw(topic, initial, 0);
         }
 
+        template <typename T>
+        topic_ptr<T> find_topic(const std::string& topic) {
+            const MutexLock lock(topics_mutex);
+            auto found = topics.find(topic);
+            if (found != topics.end())
+            {
+                return std::any_cast<topic_ptr<T>>(found->second);
+            }
+            else
+            {
+                T initial;
+                return _register_publisher_raw<T>(topic, initial, 0);
+            }
+        }
+
         /*
             Simple subscription that keeps a value up-to-date with the latest published value.
             This disregards the queue, only the latest published value will be written.
@@ -155,24 +172,13 @@ namespace rachel
             T *t;
             topic_ptr<T> p;
             std::string topic_name;
-            uint64_t seq = 0;
+            seq_t seq = 0;
             bool has_been_set = false;
 
         public:
-
             ValueSubscription(T *data, const std::string &topic) : t(data), topic_name(topic)
             {
-                const MutexLock lock(topics_mutex);
-                auto found = topics.find(topic_name);
-                if (found != topics.end())
-                {
-                    p = std::any_cast<topic_ptr<T>>(found->second);
-                }
-                else
-                {
-                    T initial;
-                    p = _register_publisher_raw<T>(topic, initial, 0);
-                }
+                p = find_topic<T>(topic_name);
             };
 
             void update()
@@ -185,5 +191,21 @@ namespace rachel
             }
         };
 
+        template <typename T>
+        class QueueSubscription {
+        private:
+            seq_t seq = 0;
+            std::string topic_name;
+            topic_ptr<T> p;
+            
+        public:
+            QueueSubscription(const std::string& topic): topic_name(topic) {
+                p = find_topic<T>(topic_name);
+            }
+
+            void update(std::function<void(const T&)> callback) {
+                p->perform_callbacks(seq, callback);
+            }
+        };
     }
 }
