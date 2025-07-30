@@ -15,6 +15,8 @@ target_include_directories(rachel INTERFACE
     $<INSTALL_INTERFACE:nodes/include>
 )
 
+find_package(spdlog REQUIRED)
+
 # Custom nodes go here
 
 add_library(some_node nodes/src/some_node.cpp)
@@ -31,4 +33,4 @@ target_link_libraries(rachel_impl rachel)
 add_executable(rachel_example src/main.cpp)
 
 # Make sure to include all custom nodes here
-target_link_libraries(rachel_example PUBLIC rachel rachel_impl some_node other_node) 
+target_link_libraries(rachel_example PUBLIC rachel rachel_impl spdlog::spdlog some_node other_node) 

@@ -9,6 +9,8 @@
 #include <atomic>
 #include <cmath>
 
+#include <spdlog/spdlog.h>
+
 using MutexLock = std::lock_guard<std::mutex>;
 
 #include "rachel_topics.hpp"

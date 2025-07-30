@@ -1,5 +1,7 @@
 #include "other_node.hpp"
 
+int x = 0;
+
 void OtherNode::run()
 {
     auto pub = rachel::topics::register_publisher<float>("other_number");
@@ -7,18 +9,16 @@ void OtherNode::run()
     subscribe<int>("some_number", [&](const int& i) {
         this->do_something(i);
     });
-    std::cout << "other node is initialized!" << std::endl;
+    spdlog::info("started other node");
 
     while (main_loop_condition()) {
-        std::cout << "hello from other node!" << std::endl;
-        pub->publish(5);
+        pub->publish(5 + 0.1f*x);
     }
 
-    std::cout << "shut down other node!" << std::endl;
+    spdlog::info("shut down other node");
 }
 
 void OtherNode::do_something(const int& i) {
-    std::stringstream ss;
-    ss << "other node got the value " << i;
-    std::cout << ss.str() << std::endl;
+    spdlog::info("other node got {}", i);
+    x = i;
 }

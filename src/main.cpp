@@ -12,6 +12,6 @@ int main() {
 
     rachel::wait_for_nodes();
 
-    std::cout << "le done" << std::endl;
+    spdlog::info("rachel done!");
     return 0;
 }
