@@ -57,10 +57,10 @@ namespace rachel
         template <typename T>
         void subscribe(const std::string &topic, T *data)
         {
-            _subscriptions[topic] = topics::Subscription<T>(data, topic);
+            _subscriptions[topic] = topics::ValueSubscription<T>(data, topic);
             _subscription_updates[topic] = [this, topic]()
             {
-                auto sub = std::any_cast<topics::Subscription<T>>(_subscriptions[topic]);
+                auto sub = std::any_cast<topics::ValueSubscription<T>>(_subscriptions[topic]);
                 sub.update();
             };
         };
