@@ -16,6 +16,7 @@ target_include_directories(rachel INTERFACE
 )
 
 find_package(spdlog REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
 # Custom nodes go here
 
@@ -33,4 +34,4 @@ target_link_libraries(rachel_impl rachel)
 add_executable(rachel_example src/main.cpp)
 
 # Make sure to include all custom nodes here
-target_link_libraries(rachel_example PUBLIC rachel rachel_impl spdlog::spdlog some_node other_node) 
+target_link_libraries(rachel_example PUBLIC rachel rachel_impl spdlog::spdlog nlohmann_json::nlohmann_json some_node other_node) 

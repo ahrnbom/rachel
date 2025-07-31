@@ -50,6 +50,10 @@ namespace rachel
         return true;
     }
 
+    void Node::set_default_params(nlohmann::json& params) {
+
+    }
+
     void capture_interrupt_signal()
     {
         struct sigaction sa;
@@ -60,12 +64,36 @@ namespace rachel
         sigaction(SIGINT, &sa, NULL);
     }
 
-    std::vector<std::thread> threads;
+    std::vector<Node*> launched_nodes;
     void launch(Node& node) {
-        threads.push_back(std::thread([&](){node.run();}));
+        launched_nodes.push_back(&node);
     }
 
-    void wait_for_nodes() {
+    const nlohmann::json* params = NULL;
+    void start() {
+        // Load all default parameters
+        Parameters _params;
+        for (Node* node : launched_nodes)  {
+            _params.load_default_params([node](nlohmann::json& data) {
+                node->set_default_params(data);
+            });
+        }
+
+        // Load parameters from file
+        _params.load_from_file();
+
+        // Update params pointer for nodes to use
+        _params.finalize();
+        params = _params.get();
+
+        // Start the threads
+        std::vector<std::thread> threads;
+        for (Node* node : launched_nodes) {
+            spdlog::info("Starting node: {}", node->node_name);
+            threads.push_back(std::thread([node](){node->run();}));
+        }
+        
+        // Wait for them to finish
         for (auto& t: threads) {
             t.join();
         }

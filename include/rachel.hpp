@@ -14,6 +14,7 @@
 using MutexLock = std::lock_guard<std::mutex>;
 
 #include "rachel_topics.hpp"
+#include "rachel_params.hpp"
 
 namespace rachel
 {
@@ -57,7 +58,6 @@ namespace rachel
         Time _last_loop_condition;
         TimeDelta _time_delta = seconds(0.1);
         
-
     public:
         std::string node_name;
 
@@ -98,15 +98,18 @@ namespace rachel
         virtual void handle_callbacks();
         virtual void run() {};
         virtual bool main_loop_condition();
+        virtual void set_default_params(nlohmann::json& params);
     };
 
+    extern const nlohmann::json* params;
+
     /*
-        Launches a node in its own thread
+        Prepares a node for launching.
     */
     void launch(Node &node);
 
     /*
-        Waits for all nodes to finish. Typically called near the end of the main function.
+        Starts all node threads. Waits for all nodes to finish. Typically called near the end of the main function.
     */
-    void wait_for_nodes();
+    void start();
 }

@@ -7,7 +7,7 @@ int main() {
     rachel::launch(some_node);
     rachel::launch(other_node);
 
-    rachel::wait_for_nodes();
+    rachel::start();
 
     spdlog::info("rachel done!");
     return 0;
