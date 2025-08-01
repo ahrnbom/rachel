@@ -2,17 +2,15 @@
 
 SomeNode some_node("some_node");
 
-const std::string INITIAL_NUMBER_PARAM = "/some_node/initial_number";
+const std::string INITIAL_NUMBER_PARAM = some_node.param_name("~/initial_number");
 
 void SomeNode::set_default_params(nlohmann::json& params) {
     params[INITIAL_NUMBER_PARAM] = 0;
 }
 
-void SomeNode::run()
+void SomeNode::run(const nlohmann::json& params)
 {
     const auto num_pub = rachel::topics::register_publisher<int>("some_number");
-
-    const auto& params = *rachel::params;
 
     float f;
     bool f_set = false;

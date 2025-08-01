@@ -57,18 +57,18 @@ namespace rachel
         std::unordered_map<std::string, std::any> _subscriptions;
         Time _last_loop_condition;
         TimeDelta _time_delta = seconds(0.1);
-        
+
     public:
         std::string node_name;
 
-        Node(const std::string& name);
+        Node(const std::string &name);
 
         /*
             Subscribe by value, which means that the data pointer will be regularly written with
             the latest published value.
         */
         template <typename T>
-        void subscribe(const std::string &topic, T *data, bool* is_set)
+        void subscribe(const std::string &topic, T *data, bool *is_set)
         {
             _subscriptions[topic] = topics::ValueSubscription<T>(data, topic);
             _subscription_updates[topic] = [this, topic, is_set]()
@@ -96,12 +96,24 @@ namespace rachel
 
         void set_time_delta(const TimeDelta &dt);
         virtual void handle_callbacks();
-        virtual void run() {};
+        virtual void run(const nlohmann::json &params) {};
         virtual bool main_loop_condition();
-        virtual void set_default_params(nlohmann::json& params);
-    };
+        virtual void set_default_params(nlohmann::json &params);
 
-    extern const nlohmann::json* params;
+        std::string param_name(std::string param_name)
+        {
+            std::stringstream ss;
+            ss << "/" << node_name;
+            const std::string topic_root = ss.str();
+
+            auto pos = param_name.find("~");
+            while ((pos = param_name.find('~')) != std::string::npos)
+            {
+                param_name.replace(pos, 1, topic_root);
+            }
+            return param_name;
+        }
+    };
 
     /*
         Prepares a node for launching.

@@ -10,7 +10,8 @@ namespace rachel
         return std::chrono::steady_clock::now();
     }
 
-    Node::Node(const std::string& name): node_name(name) {
+    Node::Node(const std::string &name) : node_name(name)
+    {
         _last_loop_condition = current_time();
     }
 
@@ -38,20 +39,22 @@ namespace rachel
 
         const auto elapsed = current_time() - _last_loop_condition;
         const auto remaining = _time_delta - elapsed;
-        
+
         if (remaining > TimeDelta::zero())
         {
             std::this_thread::sleep_for(remaining);
             spdlog::debug("{} took {:.4f} s out of {:.4f} s budget", node_name, to_seconds(elapsed), to_seconds(_time_delta));
-        } else {
+        }
+        else
+        {
             spdlog::warn("{} took {:.4f} s out of {:.4f} s budget", node_name, to_seconds(elapsed), to_seconds(_time_delta));
         }
         _last_loop_condition = current_time();
         return true;
     }
 
-    void Node::set_default_params(nlohmann::json& params) {
-
+    void Node::set_default_params(nlohmann::json &params)
+    {
     }
 
     void capture_interrupt_signal()
@@ -64,37 +67,47 @@ namespace rachel
         sigaction(SIGINT, &sa, NULL);
     }
 
-    std::vector<Node*> launched_nodes;
-    void launch(Node& node) {
+    std::vector<Node *> launched_nodes;
+    void launch(Node &node)
+    {
         launched_nodes.push_back(&node);
     }
 
-    const nlohmann::json* params = NULL;
-    void start() {
+    void start()
+    {
         // Load all default parameters
         Parameters _params;
-        for (Node* node : launched_nodes)  {
-            _params.load_default_params([node](nlohmann::json& data) {
-                node->set_default_params(data);
-            });
+        for (Node *node : launched_nodes)
+        {
+            nlohmann::json params;
+            node->set_default_params(params);
+            if (params.empty())
+            {
+                continue;
+            }
+
+            _params.update_params(params);
         }
 
         // Load parameters from file
         _params.load_from_file();
 
-        // Update params pointer for nodes to use
+        // From this point on, parameters are immutable, which makes them thread safe
         _params.finalize();
-        params = _params.get();
+        auto params = _params.get();
 
         // Start the threads
         std::vector<std::thread> threads;
-        for (Node* node : launched_nodes) {
+        for (Node *node : launched_nodes)
+        {
             spdlog::info("Starting node: {}", node->node_name);
-            threads.push_back(std::thread([node](){node->run();}));
+            threads.push_back(std::thread([node, params]()
+                                          { node->run(*params); }));
         }
-        
+
         // Wait for them to finish
-        for (auto& t: threads) {
+        for (auto &t : threads)
+        {
             t.join();
         }
     }

@@ -8,6 +8,8 @@
 
 namespace rachel
 {
+    using param_t = const nlohmann::json;
+
     /*
         Parameters in RACHEL are read-only as soon as the `run` functions of the nodes start. This allows thread safe access whenever possible.
         To enforce this, a simple class is used which protects the raw data, allowing it to be modified during loading and then freezes it, providing
@@ -15,28 +17,22 @@ namespace rachel
 
         Parameters are first loaded from each launched node's `set_default_params` function, and then overwritten by a JSON file, if it exists.
         The file is searched for in whatever path is provided in the environment variable `RACHEL_PARAMS_FILE`, or else the default
-        location `/etc/rachel/params.json`. This JSON file is treated like a patch as in https://datatracker.ietf.org/doc/html/rfc7386
+        location `/etc/rachel/params.json`.
     */
     class Parameters
     {
     private:
-        nlohmann::json data;
+        nlohmann::json params;
         bool finalized = false;
         const std::string err_msg = "Tried to modify parameters after finalizing. If you want to share values between nodes at runtime, after the intial parameter loading, there are other mechanisms for that, like topics.";
 
     public:
-        /*
-            The reason this takes a lambda instead of directly getting a reference or pointer to a node, is that
-            the node class has not been defined yet at this point in the header. 
-        */
-        void load_default_params(std::function<void(nlohmann::json &)> fun)
-        {
-            if (finalized)
-            {
+        void update_params(const nlohmann::json& new_params) {
+            if (finalized) {
                 throw std::runtime_error(err_msg);
             }
 
-            fun(data);
+            params.update(new_params, true);
         }
 
         void load_from_file()
@@ -58,7 +54,7 @@ namespace rachel
             if (file.is_open())
             {
                 nlohmann::json new_data = nlohmann::json::parse(file);
-                data.merge_patch(new_data);
+                params.update(new_data, true);
             }
             else if (!accept_file_not_found)
             {
@@ -73,9 +69,9 @@ namespace rachel
             finalized = true;
         }
 
-        const nlohmann::json *get() const
+        param_t* get() const
         {
-            return finalized ? &data : nullptr;
+            return finalized ? &params : nullptr;
         }
     };
 }

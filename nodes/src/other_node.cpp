@@ -6,7 +6,7 @@ void number_callback(const int& i) {
     other_node.do_something(i);
 }
 
-void OtherNode::run()
+void OtherNode::run(const nlohmann::json& params)
 {
     set_time_delta(rachel::seconds(0.05));
 

@@ -8,4 +8,9 @@ mkdir -p build
 cd build 
 cmake ..
 make -j $num_cpus
-ln -sf build/compile_commands.json ..
+cd ..
+ln -sf build/compile_commands.json .
+
+if [[ "$1" == "-r" ]]; then 
+    build/rachel_example
+fi

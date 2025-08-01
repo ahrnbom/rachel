@@ -7,7 +7,7 @@ private:
     
 public:
     using Node::Node;
-    void run() override; 
+    void run(const nlohmann::json& params) override; 
     void do_something(const int& i);
 };
 
