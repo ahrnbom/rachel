@@ -23,5 +23,12 @@ RACHEL has the following dependencies:
 * [CMake](https://cmake.org/)
 * [spdlog](https://github.com/gabime/spdlog)
 * [nlohmann json](https://github.com/nlohmann/json)
+* [Eigen](https://libeigen.gitlab.io/docs/)
+* (Optional) [clang-format](https://clang.llvm.org/docs/ClangFormat.html)
 
-On Fedora, you can install these with `sudo dnf install cmake spdlog-devel json-devel`. 
+On Fedora, you can install these with `sudo dnf install cmake spdlog-devel json-devel eigen3-devel`. 
+If you want to use pre-configured code formatting for C++, also run `sudo dnf install clang-tools-extra`.
+
+After installing dependencies, you want to configure `CMakeLists.txt` to compile and link the nodes you want. 
+Then, you want to modify `main.cpp` to launch the nodes you want. 
+Finally, you can run `./run.sh -r` to compile and run the program, optionally adding the flag `-f` to do automatic code formatting with `clang-format`.
