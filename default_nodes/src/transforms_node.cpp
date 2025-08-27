@@ -5,10 +5,9 @@
 
 namespace transforms_node {
 void canonical_frame_order(std::string& frame1, std::string& frame2) {
-    std::vector<std::string> frames = {frame1, frame2};
-    std::sort(frames.begin(), frames.end());
-    frame1 = frames[0];
-    frame2 = frames[1];
+    if (frame2 < frame1) {
+        std::swap(frame1, frame2);
+    }
 }
 
 /*
