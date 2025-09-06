@@ -71,14 +71,15 @@ public:
        written with the latest published value.
     */
     template <typename T>
-    void subscribe(const std::string& topic, T* data, bool* is_set)
+    void subscribe(const std::string& topic, T& data, bool& is_set, const std::string& tag = "")
     {
-        _subscriptions[topic] = topics::ValueSubscription<T>(data, topic);
-        _subscription_updates[topic] = [this, topic, is_set]() {
+        _subscriptions[topic] = topics::ValueSubscription<T>(&data, topic, tag);
+        bool* is_set_ptr = &is_set;
+        _subscription_updates[topic] = [this, topic, is_set_ptr]() {
             auto& sub = std::any_cast<topics::ValueSubscription<T>&>(
                 _subscriptions[topic]);
             sub.update();
-            *is_set = sub.is_set();
+            *is_set_ptr = sub.is_set();
         };
     };
 
@@ -89,9 +90,9 @@ public:
     template <typename T>
     void subscribe(const std::string& topic,
         std::function<void(const T&)> callback,
-    const std::string& tag = "")
+        const std::string& tag = "")
     {
-        _subscriptions[topic] = topics::QueueSubscription<T>(topic);
+        _subscriptions[topic] = topics::QueueSubscription<T>(topic, tag);
         _subscription_updates[topic] = [this, topic, callback]() {
             auto& sub = std::any_cast<topics::QueueSubscription<T>&>(
                 _subscriptions[topic]);

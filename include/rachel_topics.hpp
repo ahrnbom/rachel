@@ -96,24 +96,19 @@ namespace topics {
         }
     };
 
-    template <typename T>
-    using topic_ptr = std::shared_ptr<Topic<T>>;
-
-    inline std::unordered_map<std::string, std::any> topics;
-    inline std::mutex topics_mutex;
     inline std::unordered_map<std::string, std::unordered_set<std::string>> tags;
 
     /*
         Finds all topics that have been tagged by a specific tag
         For example, a node can use this to keep track of which topics it should publish to based on demand
     */
-    void find_topics_by_tag(const std::string& tag, std::unordered_set<std::string>& out) {
-        const auto found = tags.find(tag);
-        if (found == tags.end()) {
-            return;
-        }
-        out.insert(found->second.begin(), found->second.end());
-    }
+    void find_topics_by_tag(const std::string& tag, std::unordered_set<std::string>& out);
+
+    template <typename T>
+    using topic_ptr = std::shared_ptr<Topic<T>>;
+
+    inline std::unordered_map<std::string, std::any> topics;
+    inline std::mutex topics_mutex;
 
     /*
         This function registers a publisher without obtaining the topics lock,
@@ -180,8 +175,8 @@ namespace topics {
     public:
         ValueSubscription(T* data, const std::string& topic, const std::string& tag = "")
             : t(data)
-            , topic(topic), 
-            tag(tag)
+            , topic(topic)
+            , tag(tag)
         {
             p = find_topic<T>(topic, tag);
         };
@@ -200,7 +195,8 @@ namespace topics {
 
     public:
         QueueSubscription(const std::string& topic, const std::string& tag = "")
-            : topic(topic), tag(tag)
+            : topic(topic)
+            , tag(tag)
         {
             p = find_topic<T>(topic, tag);
         }

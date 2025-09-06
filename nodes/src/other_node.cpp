@@ -1,5 +1,10 @@
 #include "other_node.hpp"
 
+#include <eigen3/Eigen/Geometry>
+#include <rachel_utils.hpp>
+
+using Isometry = Eigen::Isometry3d;
+
 OtherNode other_node("other_node");
 
 void number_callback(const int& i) { other_node.do_something(i); }
@@ -10,11 +15,21 @@ void OtherNode::run(const nlohmann::json& params)
 
     auto pub = rachel::topics::register_publisher<float>("other_number");
 
+    Isometry a_to_c;
+    bool a_to_c_set = false;
+
     subscribe<int>("some_number", [&](const int& i) { this->do_something(i); });
+    subscribe<Isometry>("A->C", a_to_c, a_to_c_set, "transform-sub");
     spdlog::info("started other node");
 
     while (main_loop_condition()) {
         pub->publish(5 + 0.1f * x);
+
+        if (a_to_c_set) {
+            Eigen::Vector3d X(1, 2, 3);
+            X = a_to_c * X;
+            spdlog::info("other_node: applied transform, got {}", rachel_utils::format_matrix(X));
+        }
     }
 
     spdlog::info("shut down other node");

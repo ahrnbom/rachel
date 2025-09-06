@@ -1,4 +1,5 @@
 #include "rachel.hpp"
+#include "rachel_topics.hpp"
 #include <signal.h>
 
 namespace rachel {
@@ -93,4 +94,14 @@ void start()
         t.join();
     }
 }
+}
+
+void rachel::topics::find_topics_by_tag(const std::string& tag, std::unordered_set<std::string>& out)
+{
+    MutexLock lock(topics_mutex);
+    const auto found = tags.find(tag);
+    if (found == tags.end()) {
+        return;
+    }
+    out.insert(found->second.begin(), found->second.end());
 }

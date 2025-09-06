@@ -3,8 +3,8 @@
 #include <eigen3/Eigen/Geometry>
 #include <unordered_set>
 
-#include <rachel_utils.hpp>
 #include <rachel_topics.hpp>
+#include <rachel_utils.hpp>
 
 namespace transforms_node {
 void canonical_frame_order(std::string& frame1, std::string& frame2)
@@ -14,44 +14,42 @@ void canonical_frame_order(std::string& frame1, std::string& frame2)
     }
 }
 
-class OrderedTransformKey {
-public:
-    std::string frame1, frame2;
-
-    bool operator==(const OrderedTransformKey& t) const noexcept {
-        return (frame1 == t.frame1 && frame2 == t.frame2);
-    }
-};
-
-template <>
-struct std::hash<transforms_node::OrderedTransformKey> {
-    std::size_t operator()(const transforms_node::OrderedTransformKey& t) const noexcept
-    {
-        std::string A = t.frame1, B = t.frame2;
-
-        std::size_t h1 = std::hash<std::string> {}(A);
-        std::size_t h2 = std::hash<std::string> {}(B);
-        return h1 ^ (h2 << 1);
-    }
-};
+inline size_t two_strings_hash(const std::string& a, const std::string& b)
+{
+    const std::hash<std::string> x;
+    const size_t h1 = x(a);
+    const size_t h2 = x(b);
+    return h1 ^ (h2 << 1);
+}
 
 /*
     Both hash and comparison are made in such a way that A->B and B->A are "equal".
     That means that we will never store both at the same time. When looking for transforms,
-    we must explicitly check the direction by checking source and target.
+    we must explicitly check the direction by checking source and target
 */
-class TransformKey : OrderedTransformKey {
-    TransformKey(std::string A, std::string B) {
-        canonical_frame_order(A, B);
-        frame1 = A;
-        frame2 = B;
-    }
+struct TransformKey {
+    std::string frame1, frame2;
 
     bool operator==(const TransformKey& t) const noexcept
     {
         std::string A = t.frame1, B = t.frame2, C = frame1, D = frame2;
+        canonical_frame_order(A, B);
+        canonical_frame_order(C, D);
 
         return (A == C) && (B == D);
+    }
+};
+
+/*
+    Represents the source -> target relationship. Unlike TransformKey, this only goes one way,
+    i.e. A -> B and B -> A are considered different.
+*/
+struct OrderedTransformKey {
+    std::string source, target;
+
+    bool operator==(const OrderedTransformKey& t) const noexcept
+    {
+        return (source == t.source) && (target == t.target);
     }
 };
 }
@@ -63,9 +61,15 @@ struct std::hash<transforms_node::TransformKey> {
         std::string A = t.frame1, B = t.frame2;
         transforms_node::canonical_frame_order(A, B);
 
-        std::size_t h1 = std::hash<std::string> {}(A);
-        std::size_t h2 = std::hash<std::string> {}(B);
-        return h1 ^ (h2 << 1);
+        return transforms_node::two_strings_hash(A, B);
+    }
+};
+
+template <>
+struct std::hash<transforms_node::OrderedTransformKey> {
+    std::size_t operator()(const transforms_node::OrderedTransformKey& t) const noexcept
+    {
+        return transforms_node::two_strings_hash(t.source, t.target);
     }
 };
 
@@ -81,6 +85,7 @@ class TransformObj {
 private:
     Isometry transform;
     std::string source, target;
+    rachel::Time stamp;
 
 public:
     /*
@@ -95,10 +100,11 @@ public:
     /*
         Main constructor
     */
-    TransformObj(const std::string& source, const std::string& target, const Isometry& transform)
+    TransformObj(const std::string& source, const std::string& target, const Isometry& transform, const rachel::Time& stamp)
         : source(source)
         , target(target)
         , transform(transform)
+        , stamp(stamp)
     {
     }
 
@@ -115,6 +121,11 @@ public:
     const Isometry& get_transform() const
     {
         return transform;
+    }
+
+    const rachel::Time& get_stamp() const
+    {
+        return stamp;
     }
 
     /*
@@ -135,8 +146,9 @@ public:
 std::unordered_map<TransformKey, TransformObj> transforms;
 std::unordered_map<std::string, std::vector<std::string>> neighbors;
 std::unordered_map<TransformKey, std::vector<std::string>> paths_cache;
+std::unordered_map<std::string, rachel::topics::topic_ptr<Isometry>> publishers;
 
-void add_transform(const std::string& source, const std::string& target, const Isometry& transform)
+void add_transform(const std::string& source, const std::string& target, const Isometry& transform, const rachel::Time& stamp)
 {
     // This check could be skipped in a release build
     if (source == target) {
@@ -146,7 +158,7 @@ void add_transform(const std::string& source, const std::string& target, const I
     TransformKey k;
     k.frame1 = source;
     k.frame2 = target;
-    transforms[k] = TransformObj(source, target, transform);
+    transforms[k] = TransformObj(source, target, transform, stamp);
 
     // Add to neighbors map
     auto it = neighbors.try_emplace(source).first;
@@ -250,56 +262,47 @@ bool find_transform(const std::string& source, const std::string& target, Isomet
     return success;
 }
 
-bool interpret_topic_name(const std::string& topic, std::string& source, std::string& target) {
+bool interpret_topic_name(const std::string& topic, std::string& source, std::string& target)
+{
     const auto pos = topic.find("->");
-    if (pos == std::string::npos || pos == 0 || pos >= topic.size()-3) {
+    if (pos == std::string::npos || pos == 0 || pos >= topic.size() - 3) {
         return false;
     }
 
     source = topic.substr(0, pos);
-    target = topic.substr(pos+2);
+    target = topic.substr(pos + 2);
     return true;
 }
 
 void TransformsNode::run(const nlohmann::json& params)
 {
-    static std::unordered_map<OrderedTransformKey, rachel::topics::topic_ptr<Eigen::Isometry3d>> publishers;
-
-    add_transform("base", "arm", Isometry::Identity());
-    add_transform("arm", "hand", Isometry::Identity());
-    add_transform("base", "leg", Isometry::Identity());
-    add_transform("leg", "foot", Isometry::Identity());
-    add_transform("base", "head", Isometry::Identity());
-    add_transform("hand", "finger", Isometry::Identity());
-
-    // Update one transform
-    Isometry some_transform = Isometry::Identity();
-    some_transform.rotate(Eigen::AngleAxisd(0.12, Eigen::Vector3d::UnitY()));
-    some_transform.translate(Eigen::Vector3d(0.1, 0.2, 0.3));
-    add_transform("foot", "leg", some_transform);
-
-    Isometry T;
-
-    if (find_transform("finger", "foot", T)) {
-        spdlog::info("LOLOLOLOL {}", rachel_utils::format_matrix(T.matrix()));
-    }
-
-    std::unordered_set<std::string> topics;
-    rachel::topics::find_topics_by_tag("transform-sub", topics);
-    for (const std::string& topic : topics) {
-        std::string source, target;
-        if (!interpret_topic_name(topic, source, target)) {
-            spdlog::warn("Invalid topic tagged as transform subscription: {}", topic);
-            continue;
+    while (main_loop_condition()) {
+        // Any new requested transforms?
+        std::unordered_set<std::string> topics;
+        rachel::topics::find_topics_by_tag("transform-sub", topics);
+        for (const std::string& topic : topics) {
+            const auto found = publishers.find(topic);
+            if (found == publishers.end()) {
+                // No publisher yet, let's create it
+                publishers[topic] = rachel::topics::register_publisher<Isometry>(topic);
+            }
         }
 
-        TransformKey key;
-        key.frame1 = source;
-        key.frame2 = target;
+        // For each publisher, find requested transform and publish it
+        for (const auto& pair : publishers) {
+            const std::string& topic = pair.first;
+            const auto& pub = pair.second;
 
-        const auto found = publishers.find(key);
-        if (found == publishers.end()) {
+            std::string source, target;
+            if (!interpret_topic_name(topic, source, target)) {
+                spdlog::warn("transforms_node: invalid topic tagged as 'transform-sub': {}", topic);
+                continue;
+            }
 
+            Isometry iso;
+            if (find_transform(source, target, iso)) {
+                pub->publish(iso);
+            }
         }
     }
 }
