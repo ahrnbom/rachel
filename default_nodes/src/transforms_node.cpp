@@ -4,6 +4,7 @@
 #include <unordered_set>
 
 #include <rachel_utils.hpp>
+#include <rachel_topics.hpp>
 
 namespace transforms_node {
 void canonical_frame_order(std::string& frame1, std::string& frame2)
@@ -13,19 +14,42 @@ void canonical_frame_order(std::string& frame1, std::string& frame2)
     }
 }
 
+class OrderedTransformKey {
+public:
+    std::string frame1, frame2;
+
+    bool operator==(const OrderedTransformKey& t) const noexcept {
+        return (frame1 == t.frame1 && frame2 == t.frame2);
+    }
+};
+
+template <>
+struct std::hash<transforms_node::OrderedTransformKey> {
+    std::size_t operator()(const transforms_node::OrderedTransformKey& t) const noexcept
+    {
+        std::string A = t.frame1, B = t.frame2;
+
+        std::size_t h1 = std::hash<std::string> {}(A);
+        std::size_t h2 = std::hash<std::string> {}(B);
+        return h1 ^ (h2 << 1);
+    }
+};
+
 /*
     Both hash and comparison are made in such a way that A->B and B->A are "equal".
     That means that we will never store both at the same time. When looking for transforms,
-    we must explicitly check the direction by checking source and target
+    we must explicitly check the direction by checking source and target.
 */
-struct TransformKey {
-    std::string frame1, frame2;
+class TransformKey : OrderedTransformKey {
+    TransformKey(std::string A, std::string B) {
+        canonical_frame_order(A, B);
+        frame1 = A;
+        frame2 = B;
+    }
 
     bool operator==(const TransformKey& t) const noexcept
     {
         std::string A = t.frame1, B = t.frame2, C = frame1, D = frame2;
-        canonical_frame_order(A, B);
-        canonical_frame_order(C, D);
 
         return (A == C) && (B == D);
     }
@@ -226,8 +250,21 @@ bool find_transform(const std::string& source, const std::string& target, Isomet
     return success;
 }
 
+bool interpret_topic_name(const std::string& topic, std::string& source, std::string& target) {
+    const auto pos = topic.find("->");
+    if (pos == std::string::npos || pos == 0 || pos >= topic.size()-3) {
+        return false;
+    }
+
+    source = topic.substr(0, pos);
+    target = topic.substr(pos+2);
+    return true;
+}
+
 void TransformsNode::run(const nlohmann::json& params)
 {
+    static std::unordered_map<OrderedTransformKey, rachel::topics::topic_ptr<Eigen::Isometry3d>> publishers;
+
     add_transform("base", "arm", Isometry::Identity());
     add_transform("arm", "hand", Isometry::Identity());
     add_transform("base", "leg", Isometry::Identity());
@@ -245,6 +282,25 @@ void TransformsNode::run(const nlohmann::json& params)
 
     if (find_transform("finger", "foot", T)) {
         spdlog::info("LOLOLOLOL {}", rachel_utils::format_matrix(T.matrix()));
+    }
+
+    std::unordered_set<std::string> topics;
+    rachel::topics::find_topics_by_tag("transform-sub", topics);
+    for (const std::string& topic : topics) {
+        std::string source, target;
+        if (!interpret_topic_name(topic, source, target)) {
+            spdlog::warn("Invalid topic tagged as transform subscription: {}", topic);
+            continue;
+        }
+
+        TransformKey key;
+        key.frame1 = source;
+        key.frame2 = target;
+
+        const auto found = publishers.find(key);
+        if (found == publishers.end()) {
+
+        }
     }
 }
 

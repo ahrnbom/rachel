@@ -6,6 +6,7 @@
 #include <sstream>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace rachel {
 namespace topics {
@@ -100,6 +101,19 @@ namespace topics {
 
     inline std::unordered_map<std::string, std::any> topics;
     inline std::mutex topics_mutex;
+    inline std::unordered_map<std::string, std::unordered_set<std::string>> tags;
+
+    /*
+        Finds all topics that have been tagged by a specific tag
+        For example, a node can use this to keep track of which topics it should publish to based on demand
+    */
+    void find_topics_by_tag(const std::string& tag, std::unordered_set<std::string>& out) {
+        const auto found = tags.find(tag);
+        if (found == tags.end()) {
+            return;
+        }
+        out.insert(found->second.begin(), found->second.end());
+    }
 
     /*
         This function registers a publisher without obtaining the topics lock,
@@ -107,11 +121,16 @@ namespace topics {
        obtained
     */
     template <typename T>
-    topic_ptr<T> _register_publisher_raw(const std::string topic)
+    topic_ptr<T> _register_publisher_raw(const std::string topic, const std::string& tag = "")
     {
         topic_ptr<T> p;
 
-        auto found = topics.find(topic);
+        if (tag != "") {
+            auto& tagged_topics = tags.try_emplace(tag).first->second;
+            tagged_topics.insert(topic);
+        }
+
+        const auto found = topics.find(topic);
         if (found == topics.end()) {
             p = std::make_shared<Topic<T>>();
             topics[topic] = p;
@@ -126,21 +145,21 @@ namespace topics {
         Register a publisher for a new topic.
     */
     template <typename T>
-    topic_ptr<T> register_publisher(const std::string topic)
+    topic_ptr<T> register_publisher(const std::string topic, const std::string& tag = "")
     {
         const MutexLock lock(topics_mutex);
-        return _register_publisher_raw<T>(topic);
+        return _register_publisher_raw<T>(topic, tag);
     }
 
     template <typename T>
-    topic_ptr<T> find_topic(const std::string& topic)
+    topic_ptr<T> find_topic(const std::string& topic, const std::string& tag = "")
     {
         const MutexLock lock(topics_mutex);
         auto found = topics.find(topic);
         if (found != topics.end()) {
             return std::any_cast<topic_ptr<T>>(found->second);
         } else {
-            return _register_publisher_raw<T>(topic);
+            return _register_publisher_raw<T>(topic, tag);
         }
     }
 
@@ -154,16 +173,17 @@ namespace topics {
     private:
         T* t;
         topic_ptr<T> p;
-        std::string topic_name;
+        std::string topic, tag;
         seq_t seq = 0;
         bool has_been_set = false;
 
     public:
-        ValueSubscription(T* data, const std::string& topic)
+        ValueSubscription(T* data, const std::string& topic, const std::string& tag = "")
             : t(data)
-            , topic_name(topic)
+            , topic(topic), 
+            tag(tag)
         {
-            p = find_topic<T>(topic_name);
+            p = find_topic<T>(topic, tag);
         };
 
         void update() { p->update(*t, seq, has_been_set); }
@@ -175,14 +195,14 @@ namespace topics {
     class QueueSubscription {
     private:
         seq_t seq = 0;
-        std::string topic_name;
+        std::string topic, tag;
         topic_ptr<T> p;
 
     public:
-        QueueSubscription(const std::string& topic)
-            : topic_name(topic)
+        QueueSubscription(const std::string& topic, const std::string& tag = "")
+            : topic(topic), tag(tag)
         {
-            p = find_topic<T>(topic_name);
+            p = find_topic<T>(topic, tag);
         }
 
         void update(std::function<void(const T&)> callback)
@@ -190,5 +210,6 @@ namespace topics {
             p->perform_callbacks(seq, callback);
         }
     };
+
 }
 }

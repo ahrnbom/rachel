@@ -88,7 +88,8 @@ public:
     */
     template <typename T>
     void subscribe(const std::string& topic,
-        std::function<void(const T&)> callback)
+        std::function<void(const T&)> callback,
+    const std::string& tag = "")
     {
         _subscriptions[topic] = topics::QueueSubscription<T>(topic);
         _subscription_updates[topic] = [this, topic, callback]() {
